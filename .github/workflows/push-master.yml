@@ -1,0 +1,34 @@
+name: Push master
+run-name: ${{ github.event.number }} 🚀 ${{ github.event.head_commit.message }}
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: self-hosted
+    concurrency:
+      group: push-master-build-image
+      cancel-in-progress: true
+    steps:
+      - name: Checkout code
+        uses: cureskin/devops-workflows/.github/actions/checkout@main
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          {
+            echo "list<<EOF"
+            echo "latest"
+            echo "s${GITHUB_SHA:0:7}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push multi-arch with SBOM
+        uses: cureskin/devops-workflows/.github/actions/docker-build-push@main
+        with:
+          image-name: healloinc/cache-http
+          tags: ${{ steps.tags.outputs.list }}
+          docker-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-password: ${{ secrets.DOCKER_HUB_PASSWORD }}

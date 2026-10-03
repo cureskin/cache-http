@@ -1,4 +1,9 @@
-FROM golang:1.17.0-alpine
+# Build on the runner's native arch; cross-compile to the target via GOARCH.
+# Go 1.17 crashes under QEMU arm64 emulation (fatal error: lfstack.push),
+# so no Go command may run on the emulated platform.
+FROM --platform=$BUILDPLATFORM golang:1.17.0-alpine
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -10,7 +15,7 @@ RUN mkdir assets
 
 COPY *.go ./
 
-RUN go build -o /cache-http
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /cache-http
 
 # Because this is designed to run on a private Docker network
 # this will not conflict with anything running on port 80 on the host
